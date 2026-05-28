@@ -20,11 +20,11 @@ export default function GeneratePage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<GenerateQuestionInput>({
-    subject: "科学",
-    grade: "初中",
-    knowledgePoint: "浮力",
-    questionType: "单选题",
-    difficulty: "中等",
+    subject: subjects[0],
+    grade: grades[1] ?? grades[0],
+    knowledgePoint: knowledgePointExamples[0],
+    questionType: questionTypes[0],
+    difficulty: difficulties[1] ?? difficulties[0],
     count: 2,
     withExplanation: true,
     promptTemplateId: "basic-v1",
@@ -45,6 +45,8 @@ export default function GeneratePage() {
     event.preventDefault();
     setLoading(true);
     setMessage("");
+    setResult([]);
+
     try {
       const response = await fetch("/api/generate", {
         method: "POST",
@@ -52,11 +54,17 @@ export default function GeneratePage() {
         body: JSON.stringify(form)
       });
       const data = (await response.json()) as GenerateQuestionResult;
+
+      if (!response.ok) {
+        setMessage(data.message ?? "真实 AI 生成失败，请检查 API Key、Base URL 和模型名。");
+        return;
+      }
+
       setResult(data.questions);
-      upsertQuestions(data.questions);
-      setMessage(data.message ?? (data.mode === "real" ? "已使用真实 AI 模式生成题目。" : "已使用 Mock 演示模式生成题目。"));
+      if (data.questions.length) upsertQuestions(data.questions);
+      setMessage(data.message ?? "已使用真实 AI API 生成题目。");
     } catch {
-      setMessage("生成失败，请稍后重试。");
+      setMessage("真实 AI 生成失败，请检查网络、API Key、Base URL 和模型名。");
     } finally {
       setLoading(false);
     }
@@ -67,7 +75,7 @@ export default function GeneratePage() {
       <Card>
         <CardHeader>
           <CardTitle>题目生成工作台</CardTitle>
-          <CardDescription>按教研条件生成题目，并自动触发 AI 质量评分。</CardDescription>
+          <CardDescription>按教研条件调用真实 AI API 生成题目，并自动触发质量评分。</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={onSubmit}>
@@ -121,7 +129,7 @@ export default function GeneratePage() {
             </Field>
             <Button className="w-full" disabled={loading || !form.knowledgePoint.trim()}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}
-              生成题目
+              调用真实 AI 生成题目
             </Button>
           </form>
         </CardContent>
@@ -132,13 +140,15 @@ export default function GeneratePage() {
         <Card>
           <CardHeader>
             <CardTitle>生成结果</CardTitle>
-            <CardDescription>题目已保存到本地演示数据，可进入详情或审核页继续流转。</CardDescription>
+            <CardDescription>生成成功后会保存到本地题库，供审核、规则沉淀、组卷和看板使用。</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {!result.length && !loading ? (
-              <div className="rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">填写左侧条件后生成题目。</div>
+              <div className="rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+                请先配置真实 API Key，然后填写左侧条件生成题目。
+              </div>
             ) : null}
-            {loading ? <div className="rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">AI 正在生成并评分...</div> : null}
+            {loading ? <div className="rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">真实 AI 正在生成并评分...</div> : null}
             {result.map((question) => (
               <div key={question.id} className="rounded-lg border border-border p-4">
                 <div className="flex flex-wrap items-center gap-2">

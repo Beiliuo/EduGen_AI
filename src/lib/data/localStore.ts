@@ -1,12 +1,15 @@
 "use client";
 
 import { defaultPromptTemplates } from "@/lib/data/promptTemplates";
-import { sampleQuestions } from "@/lib/data/sampleQuestions";
+import type { Paper } from "@/types/paper";
+import type { QualityRule } from "@/types/qualityRule";
 import type { Question } from "@/types/question";
 import type { PromptTemplate } from "@/types/promptTemplate";
 
 const questionKey = "edugen-ai.questions";
 const templateKey = "edugen-ai.promptTemplates";
+const paperKey = "edugen-ai.papers";
+const qualityRuleKey = "edugen-ai.qualityRules";
 
 function read<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -29,7 +32,7 @@ function write<T>(key: string, value: T) {
 }
 
 export function getQuestions() {
-  return read<Question[]>(questionKey, sampleQuestions);
+  return read<Question[]>(questionKey, []);
 }
 
 export function saveQuestions(questions: Question[]) {
@@ -49,6 +52,44 @@ export function updateQuestion(question: Question) {
 export function deleteQuestion(questionId: string) {
   const next = getQuestions().filter((item) => item.id !== questionId);
   saveQuestions(next);
+}
+
+export function getPapers() {
+  return read<Paper[]>(paperKey, []);
+}
+
+export function savePapers(papers: Paper[]) {
+  write(paperKey, papers);
+}
+
+export function upsertPaper(paper: Paper) {
+  const current = getPapers();
+  const exists = current.some((item) => item.id === paper.id);
+  savePapers(exists ? current.map((item) => (item.id === paper.id ? paper : item)) : [paper, ...current]);
+}
+
+export function deletePaper(paperId: string) {
+  const next = getPapers().filter((item) => item.id !== paperId);
+  savePapers(next);
+}
+
+export function getQualityRules() {
+  return read<QualityRule[]>(qualityRuleKey, []);
+}
+
+export function saveQualityRules(rules: QualityRule[]) {
+  write(qualityRuleKey, rules);
+}
+
+export function upsertQualityRule(rule: QualityRule) {
+  const current = getQualityRules();
+  const exists = current.some((item) => item.id === rule.id);
+  saveQualityRules(exists ? current.map((item) => (item.id === rule.id ? rule : item)) : [rule, ...current]);
+}
+
+export function deleteQualityRule(ruleId: string) {
+  const next = getQualityRules().filter((item) => item.id !== ruleId);
+  saveQualityRules(next);
 }
 
 export function getPromptTemplates() {

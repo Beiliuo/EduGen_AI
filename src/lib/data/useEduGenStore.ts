@@ -1,18 +1,38 @@
 "use client";
 
-import { deleteQuestion as deleteStoredQuestion, getPromptTemplates, getQuestions, savePromptTemplates, saveQuestions } from "@/lib/data/localStore";
+import {
+  deletePaper as deleteStoredPaper,
+  deleteQualityRule as deleteStoredQualityRule,
+  deleteQuestion as deleteStoredQuestion,
+  getPapers,
+  getPromptTemplates,
+  getQuestions,
+  getQualityRules,
+  savePapers,
+  savePromptTemplates,
+  saveQualityRules,
+  saveQuestions,
+  upsertPaper as upsertStoredPaper,
+  upsertQualityRule as upsertStoredQualityRule
+} from "@/lib/data/localStore";
+import type { Paper } from "@/types/paper";
 import type { PromptTemplate } from "@/types/promptTemplate";
+import type { QualityRule } from "@/types/qualityRule";
 import type { Question } from "@/types/question";
 import { useCallback, useEffect, useState } from "react";
 
 export function useEduGenStore() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [templates, setTemplates] = useState<PromptTemplate[]>([]);
+  const [papers, setPapers] = useState<Paper[]>([]);
+  const [qualityRules, setQualityRules] = useState<QualityRule[]>([]);
   const [ready, setReady] = useState(false);
 
   const refresh = useCallback(() => {
     setQuestions(getQuestions());
     setTemplates(getPromptTemplates());
+    setPapers(getPapers());
+    setQualityRules(getQualityRules());
     setReady(true);
   }, []);
 
@@ -36,10 +56,56 @@ export function useEduGenStore() {
     setTemplates(next);
   }, []);
 
+  const persistPapers = useCallback((next: Paper[]) => {
+    savePapers(next);
+    setPapers(next);
+  }, []);
+
+  const persistQualityRules = useCallback((next: QualityRule[]) => {
+    saveQualityRules(next);
+    setQualityRules(next);
+  }, []);
+
+  const savePaper = useCallback((paper: Paper) => {
+    upsertStoredPaper(paper);
+    setPapers(getPapers());
+  }, []);
+
+  const deletePaper = useCallback((paperId: string) => {
+    deleteStoredPaper(paperId);
+    setPapers((current) => current.filter((item) => item.id !== paperId));
+  }, []);
+
+  const saveQualityRule = useCallback((rule: QualityRule) => {
+    upsertStoredQualityRule(rule);
+    setQualityRules(getQualityRules());
+  }, []);
+
+  const deleteQualityRule = useCallback((ruleId: string) => {
+    deleteStoredQualityRule(ruleId);
+    setQualityRules((current) => current.filter((item) => item.id !== ruleId));
+  }, []);
+
   const deleteQuestion = useCallback((questionId: string) => {
     deleteStoredQuestion(questionId);
     setQuestions((current) => current.filter((item) => item.id !== questionId));
   }, []);
 
-  return { questions, templates, ready, setQuestions: persistQuestions, setTemplates: persistTemplates, deleteQuestion, refresh };
+  return {
+    questions,
+    templates,
+    papers,
+    qualityRules,
+    ready,
+    setQuestions: persistQuestions,
+    setTemplates: persistTemplates,
+    setPapers: persistPapers,
+    setQualityRules: persistQualityRules,
+    savePaper,
+    deletePaper,
+    saveQualityRule,
+    deleteQualityRule,
+    deleteQuestion,
+    refresh
+  };
 }

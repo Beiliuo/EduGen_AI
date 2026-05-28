@@ -52,6 +52,6 @@ export type GenerateQuestionInput = {
 
 export type GenerateQuestionResult = {
   questions: Question[];
-  mode: "real" | "mock";
+  mode: "real";
   message?: string;
 };

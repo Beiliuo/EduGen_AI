@@ -4,7 +4,10 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   return NextResponse.json({
-    mode: process.env.OPENAI_API_KEY ? "real" : "mock"
+    mode: "real",
+    configured: Boolean(process.env.OPENAI_API_KEY),
+    baseUrl: process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1",
+    model: process.env.AI_MODEL ?? "gpt-4o-mini"
   });
 }
 
@@ -17,7 +20,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         questions: [],
-        mode: "mock",
+        mode: "real",
         message: error instanceof Error ? error.message : "生成题目失败"
       },
       { status: 400 }
