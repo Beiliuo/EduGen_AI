@@ -1,5 +1,8 @@
 import { buildEvaluatePrompt, buildGeneratePrompt } from "@/lib/ai/prompts";
+import type { ApiConfig } from "@/types/apiConfig";
 import type { GenerateQuestionInput, GenerateQuestionResult, Question, QualityScore } from "@/types/question";
+
+type RuntimeApiConfig = Partial<Pick<ApiConfig, "apiKey" | "baseUrl" | "model">>;
 
 type ModelQuestion = {
   stem: string;
@@ -10,13 +13,20 @@ type ModelQuestion = {
   difficulty?: string;
 };
 
-const baseUrl = process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1";
-const model = process.env.AI_MODEL ?? "gpt-4o-mini";
+function resolveApiConfig(config?: RuntimeApiConfig) {
+  return {
+    apiKey: config?.apiKey?.trim() || process.env.OPENAI_API_KEY || "",
+    baseUrl: config?.baseUrl?.trim() || process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
+    model: config?.model?.trim() || process.env.AI_MODEL || "gpt-4o-mini"
+  };
+}
 
-function requireApiKey() {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error("未配置 OPENAI_API_KEY。请先复制 .env.example 为 .env.local，并填写真实 API Key。");
+function requireApiKey(config?: RuntimeApiConfig) {
+  const resolved = resolveApiConfig(config);
+  if (!resolved.apiKey) {
+    throw new Error("未配置 API Key。请先在「API 配置」页面填写 Key，或在 .env.local 中配置 OPENAI_API_KEY。");
   }
+  return resolved;
 }
 
 function extractJson(text: string) {
@@ -24,17 +34,17 @@ function extractJson(text: string) {
   return JSON.parse(cleaned);
 }
 
-async function callOpenAI(prompt: string) {
-  requireApiKey();
+async function callOpenAI(prompt: string, config?: RuntimeApiConfig) {
+  const resolved = requireApiKey(config);
 
-  const response = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
+  const response = await fetch(`${resolved.baseUrl.replace(/\/$/, "")}/chat/completions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+      Authorization: `Bearer ${resolved.apiKey}`
     },
     body: JSON.stringify({
-      model,
+      model: resolved.model,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.4
     })
@@ -51,8 +61,11 @@ async function callOpenAI(prompt: string) {
   return content as string;
 }
 
-async function evaluateWithOpenAI(question: Pick<Question, "stem" | "options" | "answer" | "explanation" | "knowledgePoint" | "difficulty">): Promise<QualityScore> {
-  const content = await callOpenAI(buildEvaluatePrompt(question));
+async function evaluateWithOpenAI(
+  question: Pick<Question, "stem" | "options" | "answer" | "explanation" | "knowledgePoint" | "difficulty">,
+  config?: RuntimeApiConfig
+): Promise<QualityScore> {
+  const content = await callOpenAI(buildEvaluatePrompt(question), config);
   const score = extractJson(content) as QualityScore;
   const totalScore =
     score.totalScore ??
@@ -60,8 +73,15 @@ async function evaluateWithOpenAI(question: Pick<Question, "stem" | "options" | 
   return { ...score, totalScore };
 }
 
-export async function generateQuestion(input: GenerateQuestionInput): Promise<GenerateQuestionResult> {
-  const content = await callOpenAI(buildGeneratePrompt(input));
+export async function testAIConnection(config?: RuntimeApiConfig) {
+  const resolved = requireApiKey(config);
+  await callOpenAI('请只返回 JSON：{"ok":true}', resolved);
+  return { ok: true, baseUrl: resolved.baseUrl, model: resolved.model };
+}
+
+export async function generateQuestion(input: GenerateQuestionInput, config?: RuntimeApiConfig): Promise<GenerateQuestionResult> {
+  const resolved = requireApiKey(config);
+  const content = await callOpenAI(buildGeneratePrompt(input), resolved);
   const parsed = extractJson(content);
   const rows = (Array.isArray(parsed) ? parsed : [parsed]) as ModelQuestion[];
   const questions: Question[] = [];
@@ -77,7 +97,7 @@ export async function generateQuestion(input: GenerateQuestionInput): Promise<Ge
       knowledgePoint: row.knowledgePoint ?? input.knowledgePoint,
       difficulty: input.difficulty
     };
-    const qualityScore = await evaluateWithOpenAI(partial);
+    const qualityScore = await evaluateWithOpenAI(partial, resolved);
     questions.push({
       id: `q-${Date.now()}-${index}`,
       subject: input.subject,

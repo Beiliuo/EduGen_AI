@@ -1,13 +1,16 @@
 "use client";
 
 import {
+  deleteApiConfig as deleteStoredApiConfig,
   deletePaper as deleteStoredPaper,
   deleteQualityRule as deleteStoredQualityRule,
   deleteQuestion as deleteStoredQuestion,
+  getApiConfig,
   getPapers,
   getPromptTemplates,
   getQuestions,
   getQualityRules,
+  saveApiConfig as saveStoredApiConfig,
   savePapers,
   savePromptTemplates,
   saveQualityRules,
@@ -15,6 +18,7 @@ import {
   upsertPaper as upsertStoredPaper,
   upsertQualityRule as upsertStoredQualityRule
 } from "@/lib/data/localStore";
+import type { ApiConfig } from "@/types/apiConfig";
 import type { Paper } from "@/types/paper";
 import type { PromptTemplate } from "@/types/promptTemplate";
 import type { QualityRule } from "@/types/qualityRule";
@@ -26,6 +30,7 @@ export function useEduGenStore() {
   const [templates, setTemplates] = useState<PromptTemplate[]>([]);
   const [papers, setPapers] = useState<Paper[]>([]);
   const [qualityRules, setQualityRules] = useState<QualityRule[]>([]);
+  const [apiConfig, setApiConfig] = useState<ApiConfig | null>(null);
   const [ready, setReady] = useState(false);
 
   const refresh = useCallback(() => {
@@ -33,6 +38,7 @@ export function useEduGenStore() {
     setTemplates(getPromptTemplates());
     setPapers(getPapers());
     setQualityRules(getQualityRules());
+    setApiConfig(getApiConfig());
     setReady(true);
   }, []);
 
@@ -91,11 +97,22 @@ export function useEduGenStore() {
     setQuestions((current) => current.filter((item) => item.id !== questionId));
   }, []);
 
+  const saveApiConfig = useCallback((config: ApiConfig) => {
+    saveStoredApiConfig(config);
+    setApiConfig(getApiConfig());
+  }, []);
+
+  const deleteApiConfig = useCallback(() => {
+    deleteStoredApiConfig();
+    setApiConfig(null);
+  }, []);
+
   return {
     questions,
     templates,
     papers,
     qualityRules,
+    apiConfig,
     ready,
     setQuestions: persistQuestions,
     setTemplates: persistTemplates,
@@ -106,6 +123,8 @@ export function useEduGenStore() {
     saveQualityRule,
     deleteQualityRule,
     deleteQuestion,
+    saveApiConfig,
+    deleteApiConfig,
     refresh
   };
 }

@@ -28,7 +28,7 @@ export const defaultPromptTemplates: PromptTemplate[] = [
     inputFields: ["subject", "grade", "knowledgePoint", "questionType", "difficulty"],
     outputFormat: "JSON",
     content:
-      "请生成题目、标准答案和分步骤解析。解析需要说明核心概念、易错点和解题依据，避免只给结论。",
+      "请生成题目、标准答案和分步解析。解析需要说明核心概念、易错点和解题依据，避免只给结论。",
     isActive: true,
     usageCount: 31,
     averageScore: 89,

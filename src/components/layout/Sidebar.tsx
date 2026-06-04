@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils/cn";
-import { BarChart3, BookMarked, BookOpenCheck, FileText, Home, PenLine, WandSparkles } from "lucide-react";
+import { BarChart3, BookMarked, BookOpenCheck, FileText, Home, PenLine, Settings, WandSparkles } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -12,7 +12,8 @@ const navItems = [
   { href: "/rules", label: "质量规则库", icon: BookMarked },
   { href: "/papers", label: "组卷中心", icon: FileText },
   { href: "/prompts", label: "Prompt 模板", icon: PenLine },
-  { href: "/dashboard", label: "数据看板", icon: BarChart3 }
+  { href: "/dashboard", label: "数据看板", icon: BarChart3 },
+  { href: "/settings", label: "API 配置", icon: Settings }
 ];
 
 export function Sidebar() {

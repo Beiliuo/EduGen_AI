@@ -9,12 +9,12 @@ import { difficulties, grades, knowledgePointExamples, questionTypes, subjects }
 import { upsertQuestions } from "@/lib/data/localStore";
 import { useEduGenStore } from "@/lib/data/useEduGenStore";
 import type { GenerateQuestionInput, GenerateQuestionResult, Question } from "@/types/question";
-import { ArrowRight, Loader2, WandSparkles } from "lucide-react";
+import { ArrowRight, Loader2, Settings, WandSparkles } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 
 export default function GeneratePage() {
-  const { templates } = useEduGenStore();
+  const { templates, apiConfig } = useEduGenStore();
   const activeTemplates = useMemo(() => templates.filter((item) => item.isActive), [templates]);
   const [result, setResult] = useState<Question[]>([]);
   const [message, setMessage] = useState("");
@@ -51,12 +51,15 @@ export default function GeneratePage() {
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form)
+        body: JSON.stringify({
+          input: form,
+          apiConfig: apiConfig?.apiKey?.trim() ? apiConfig : undefined
+        })
       });
       const data = (await response.json()) as GenerateQuestionResult;
 
       if (!response.ok) {
-        setMessage(data.message ?? "真实 AI 生成失败，请检查 API Key、Base URL 和模型名。");
+        setMessage(data.message ?? "真实 AI 生成失败，请检查 API Key、Base URL 和模型名称。");
         return;
       }
 
@@ -64,7 +67,7 @@ export default function GeneratePage() {
       if (data.questions.length) upsertQuestions(data.questions);
       setMessage(data.message ?? "已使用真实 AI API 生成题目。");
     } catch {
-      setMessage("真实 AI 生成失败，请检查网络、API Key、Base URL 和模型名。");
+      setMessage("真实 AI 生成失败，请检查网络、API Key、Base URL 和模型名称。");
     } finally {
       setLoading(false);
     }
@@ -82,30 +85,40 @@ export default function GeneratePage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="学科">
                 <Select value={form.subject} onChange={(e) => update("subject", e.target.value as GenerateQuestionInput["subject"])}>
-                  {subjects.map((item) => <option key={item}>{item}</option>)}
+                  {subjects.map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
                 </Select>
               </Field>
               <Field label="年级">
                 <Select value={form.grade} onChange={(e) => update("grade", e.target.value as GenerateQuestionInput["grade"])}>
-                  {grades.map((item) => <option key={item}>{item}</option>)}
+                  {grades.map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
                 </Select>
               </Field>
             </div>
             <Field label="知识点">
               <Input list="knowledge-points" value={form.knowledgePoint} onChange={(e) => update("knowledgePoint", e.target.value)} />
               <datalist id="knowledge-points">
-                {knowledgePointExamples.map((item) => <option value={item} key={item} />)}
+                {knowledgePointExamples.map((item) => (
+                  <option value={item} key={item} />
+                ))}
               </datalist>
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="题型">
                 <Select value={form.questionType} onChange={(e) => update("questionType", e.target.value as GenerateQuestionInput["questionType"])}>
-                  {questionTypes.map((item) => <option key={item}>{item}</option>)}
+                  {questionTypes.map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
                 </Select>
               </Field>
               <Field label="难度">
                 <Select value={form.difficulty} onChange={(e) => update("difficulty", e.target.value as GenerateQuestionInput["difficulty"])}>
-                  {difficulties.map((item) => <option key={item}>{item}</option>)}
+                  {difficulties.map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
                 </Select>
               </Field>
             </div>
@@ -123,10 +136,18 @@ export default function GeneratePage() {
             <Field label="Prompt 模板">
               <Select value={form.promptTemplateId} onChange={(e) => onTemplateChange(e.target.value)}>
                 {activeTemplates.map((item) => (
-                  <option key={item.id} value={item.id}>{item.name} {item.version}</option>
+                  <option key={item.id} value={item.id}>
+                    {item.name} {item.version}
+                  </option>
                 ))}
               </Select>
             </Field>
+            <div className="rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+              当前生成会优先使用页面 API 配置；未配置页面 Key 时，将尝试使用 .env.local 中的环境变量。
+              <Link className="ml-1 font-medium text-primary" href="/settings">
+                去配置
+              </Link>
+            </div>
             <Button className="w-full" disabled={loading || !form.knowledgePoint.trim()}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}
               调用真实 AI 生成题目
@@ -144,11 +165,21 @@ export default function GeneratePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {!result.length && !loading ? (
-              <div className="rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-                请先配置真实 API Key，然后填写左侧条件生成题目。
+              <div className="space-y-3 rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+                <div>请先配置真实 API Key，然后填写左侧条件生成题目。</div>
+                <Link href="/settings">
+                  <Button type="button" variant="secondary">
+                    <Settings className="h-4 w-4" />
+                    打开 API 配置
+                  </Button>
+                </Link>
               </div>
             ) : null}
-            {loading ? <div className="rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">真实 AI 正在生成并评分...</div> : null}
+            {loading ? (
+              <div className="rounded-lg border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+                真实 AI 正在生成并评分...
+              </div>
+            ) : null}
             {result.map((question) => (
               <div key={question.id} className="rounded-lg border border-border p-4">
                 <div className="flex flex-wrap items-center gap-2">
@@ -160,14 +191,18 @@ export default function GeneratePage() {
                 <h3 className="mt-3 text-base font-semibold">{question.stem}</h3>
                 {question.options.length ? (
                   <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
-                    {question.options.map((option) => <li key={option}>{option}</li>)}
+                    {question.options.map((option) => (
+                      <li key={option}>{option}</li>
+                    ))}
                   </ul>
                 ) : null}
                 <div className="mt-4 grid gap-3 md:grid-cols-[140px_1fr_auto] md:items-center">
                   <div className="text-sm font-medium">质量分 {question.qualityScore.totalScore}</div>
                   <Progress value={question.qualityScore.totalScore} />
                   <Link href={`/questions/${question.id}`}>
-                    <Button variant="secondary" size="sm">查看详情 <ArrowRight className="h-4 w-4" /></Button>
+                    <Button variant="secondary" size="sm">
+                      查看详情 <ArrowRight className="h-4 w-4" />
+                    </Button>
                   </Link>
                 </div>
               </div>

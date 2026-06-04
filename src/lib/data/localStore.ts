@@ -1,15 +1,17 @@
 "use client";
 
 import { defaultPromptTemplates } from "@/lib/data/promptTemplates";
+import type { ApiConfig } from "@/types/apiConfig";
 import type { Paper } from "@/types/paper";
+import type { PromptTemplate } from "@/types/promptTemplate";
 import type { QualityRule } from "@/types/qualityRule";
 import type { Question } from "@/types/question";
-import type { PromptTemplate } from "@/types/promptTemplate";
 
 const questionKey = "edugen-ai.questions";
 const templateKey = "edugen-ai.promptTemplates";
 const paperKey = "edugen-ai.papers";
 const qualityRuleKey = "edugen-ai.qualityRules";
+const apiConfigKey = "edugen-ai.apiConfig";
 
 function read<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -98,4 +100,18 @@ export function getPromptTemplates() {
 
 export function savePromptTemplates(templates: PromptTemplate[]) {
   write(templateKey, templates);
+}
+
+export function getApiConfig() {
+  return read<ApiConfig | null>(apiConfigKey, null);
+}
+
+export function saveApiConfig(config: ApiConfig) {
+  write(apiConfigKey, { ...config, updatedAt: new Date().toISOString() });
+}
+
+export function deleteApiConfig() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(apiConfigKey);
+  window.dispatchEvent(new Event("edugen-ai-storage"));
 }
