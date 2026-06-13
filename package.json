@@ -2,12 +2,50 @@
   "name": "edugen-ai",
   "version": "0.1.0",
   "private": true,
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "electron:prepare": "npm run build && node scripts/prepare-electron-build.mjs",
+    "electron:dev": "npm run electron:prepare && electron .",
+    "electron:pack": "npm run electron:prepare && node scripts/run-electron-builder.mjs --dir",
+    "electron:dist": "npm run electron:prepare && node scripts/run-electron-builder.mjs",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
+  },
+  "build": {
+    "appId": "com.edugen.ai",
+    "productName": "EduGen AI",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "afterPack": "scripts/electron-after-pack.cjs",
+    "files": [
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": ".next/standalone",
+        "to": "next",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "signAndEditExecutable": false,
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -23,6 +61,8 @@
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "autoprefixer": "^10.4.20",
+    "electron": "^42.3.3",
+    "electron-builder": "^26.8.1",
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.23",
     "postcss": "^8.4.49",

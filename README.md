@@ -57,6 +57,34 @@ npm run dev
 http://localhost:3000
 ```
 
+## Electron 本地应用
+
+项目支持打包为 Windows 本地桌面应用。打包前请先安装依赖：
+
+```bash
+npm install
+```
+
+本地预览桌面应用：
+
+```bash
+npm run electron:dev
+```
+
+生成未安装的应用目录：
+
+```bash
+npm run electron:pack
+```
+
+生成安装包 / 便携版：
+
+```bash
+npm run electron:dist
+```
+
+打包产物会输出到 `dist/` 目录。`dist/` 已在 `.gitignore` 中忽略，不建议提交到 GitHub。
+
 ## API 配置方式
 
 ### 方式一：页面配置

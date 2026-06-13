@@ -21,6 +21,7 @@ dist/
 
 # local caches and logs
 .npm-cache/
+.electron-builder-cache/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
